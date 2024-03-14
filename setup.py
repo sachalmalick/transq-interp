@@ -21,5 +21,12 @@ setup(
         'console_scripts': [
             'experiment = interpexperiments.experiment:main',
         ]
-    }
+    },
+    install_requires=[
+        'numpy',
+        'torch',
+        'transformer_lens',
+        'evaluate',
+        'transformers'
+    ]
 )
