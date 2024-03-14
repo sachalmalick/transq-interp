@@ -1,31 +1,12 @@
+
 import circuitsvis as cv
-from transformer_lens import loading_from_pretrained
+
 from transformer_lens import HookedTransformer
 import torch
-import finetuning.util as util
-
-WELTERWEIGHT_FT = "sachalmalick/gpt2-transprop-ft-welterweight"
-LIGHTWEIGHT_FT = "sachalmalick/gpt2-transprop-ft-lightweight"
-FEATHERWEIGHT_FT = "sachalmalick/gpt2-transprop-ft-featherweight"
-LIGHTWEIGHT_FT_EXPOSED = "sachalmalick/gpt2-transprop-ft-featherweight"
-
-ATTENDERS_DIR = "attenders"
-PROMPT_1 = "if all men are humans and all humans suck it can be inferred that all men "
-PROMPT_2 = "if all men are humans and all humans eat it can be inferred that all men "
-PROMPT_3 = "if all men are mammals and all mammals eat it can be inferred that all men "
-PROMPT_4 = "if all dogs are mammals and all mammals eat it can be inferred that all dogs "
-PROMPT_5 = "if all dogs are mammals and all mammals eat it can be deduced that all dogs "
-PROMPT_6 = "if all dogs are mammals and all mammals eat it can be deduced that dogs do not "
-PROMPT_7 = "if all dogs are friendly and friendly is a type of kind then it can be inferred that all dogs are a type of "
-PROMPT_8 = "dog implies friendly and if friendly then kind therefore by the transitive property dog also implies "
-PROMPT_9 = "yoda implies ninja and if ninja then dangerous therefore by the transitive property ninja also implies "
-PROMPT_10 = "yoda implies ninja and if ninja then dangerous therefore by the transitive property coco also implies "
-
-def register_finetuned_models():
-    loading_from_pretrained.OFFICIAL_MODEL_NAMES.append(WELTERWEIGHT_FT)
-    loading_from_pretrained.OFFICIAL_MODEL_NAMES.append(LIGHTWEIGHT_FT)
-    loading_from_pretrained.OFFICIAL_MODEL_NAMES.append(FEATHERWEIGHT_FT)
-
+import interpexperiments.util as interputil
+import constants as const
+import util as ut
+import interpexperiments.constants as interpconst
 
 def prompt_with_cache(model, text):
     tokens = model.to_tokens(text)
@@ -35,13 +16,6 @@ def prompt_with_cache(model, text):
 def show_attention_patterns(tokens, layer, cache):
     attention_pattern = cache["pattern", layer, "attn"]
     cv.attention.attention_patterns(tokens=tokens, attention=attention_pattern)
-
-def setup(modelname=WELTERWEIGHT_FT):
-    torch.set_grad_enabled(False)
-    register_finetuned_models()
-    device = "cuda"
-    model = HookedTransformer.from_pretrained(modelname, device=device)
-    return model
 
 def convert_strong_attenders_text(model, attenders, tokens):
     results = {}
@@ -95,27 +69,24 @@ def write_all_string_attenders(model, cache, tokens, f):
             f.write("\n")
         f.write("\n")
 
-
-
 def collect_strong_attention_data():
-    modelnames = ["gpt2", FEATHERWEIGHT_FT, LIGHTWEIGHT_FT, WELTERWEIGHT_FT]
+    modelnames = interputil.get_all_ft_model_hub_paths()
+    modelnames.append("gpt2")
     for modelname in modelnames:
         print("Running experiments on", modelname)
-        model = setup(modelname = modelname)
-        prompts = {"prompt_1" : PROMPT_1, "prompt_2" : PROMPT_2 , "prompt_3" : PROMPT_3, "prompt_4" : PROMPT_4, "prompt_5" : PROMPT_5, "prompt_6" : PROMPT_6, "prompt_7" : PROMPT_7, "prompt_8" : PROMPT_8, "prompt_9" : PROMPT_9, "prompt_10" : PROMPT_10}
+        model = interputil.get_hooked_model(modelname)
+        prompts = interpconst.PROMPTS
         for prompt in prompts:
             logits, cache, tokens = prompt_with_cache(model, prompts[prompt])
-            path = ATTENDERS_DIR + "/" + modelname + "/" + prompt + ".txt"
+            path = interpconst.ATTENDERS_DIR + "/" + modelname + "/" + prompt + ".txt"
             f = open(path, "w")
             f.write(prompts[prompt] + "\n")
             print(prompts[prompt])
-            resp = util.prompt(prompts[prompt], model)
+            resp = ut.prompt(prompts[prompt], model)
             f.write(resp + "\n")
             print(resp)
             write_all_string_attenders(model, cache, tokens, f)
             f.close()
 
-def test_
-
-if __name__ == "__main__":
+def main():
     collect_strong_attention_data()

@@ -1,4 +1,4 @@
-import util
+import util as util
 import constants as const
 
 if __name__ == "__main__":
