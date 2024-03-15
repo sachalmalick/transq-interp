@@ -1,6 +1,6 @@
 from transformer_lens import loading_from_pretrained, HookedTransformer
-import util
-import constants as const
+import transqshared.util as util
+import transqshared.constants as const
 
 def register_finetuned_models():
     loading_from_pretrained.OFFICIAL_MODEL_NAMES.extend(get_all_ft_model_hub_paths())

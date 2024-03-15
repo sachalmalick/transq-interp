@@ -2,7 +2,7 @@ import pickle
 from transformers import PushToHubCallback
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from pathlib import Path
-import constants as const
+import transqshared.constants as const
 import os
 
 def load_pickled_data(filepath):

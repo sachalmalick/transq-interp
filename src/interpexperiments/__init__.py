@@ -1,8 +1,8 @@
 import torch
 import interpexperiments.util as inteprutil
-import constants as const
+import transqshared.constants as const
 import interpexperiments.constants as expconst
-import util as ut
+import transqshared.util as ut
 from pathlib import Path
 
 torch.set_grad_enabled(False)

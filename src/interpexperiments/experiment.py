@@ -4,8 +4,8 @@ import circuitsvis as cv
 from transformer_lens import HookedTransformer
 import torch
 import interpexperiments.util as interputil
-import constants as const
-import util as ut
+import transqshared.constants as const
+import transqshared.util as ut
 import interpexperiments.constants as interpconst
 
 def prompt_with_cache(model, text):

@@ -7,7 +7,7 @@ from preproc import get_random_nouns_ds
 import inspect
 from torch.utils.data import Subset
 from transformers import DataCollatorForLanguageModeling
-from finetuning.util import pickle_obj, load_pickled_data
+from transqshared.util import pickle_obj, load_pickled_data
 import torch
 
 class CustomDataCollatorForLanguageModeling:

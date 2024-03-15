@@ -5,7 +5,7 @@ import random
 from transformers import AutoTokenizer
 from torch.utils.data import Dataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from util import pickle_obj, load_pickled_data
+from transqshared.util import pickle_obj, load_pickled_data
 import torch
 
 ALL_NOUNS_FILE = "data/all_nouns.pkl"
