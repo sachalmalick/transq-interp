@@ -28,5 +28,6 @@ setup(
         'transformer_lens',
         'evaluate',
         'transformers'
+        'circuitsvis'
     ]
 )
