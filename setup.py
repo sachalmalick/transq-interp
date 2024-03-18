@@ -20,6 +20,7 @@ setup(
     entry_points={
         'console_scripts': [
             'experiment = interpexperiments.experiment:main',
+            'preproc = finetuning.preproc:main'
         ]
     },
     install_requires=[
@@ -27,7 +28,9 @@ setup(
         'torch',
         'transformer_lens',
         'evaluate',
-        'transformers'
-        'circuitsvis'
+        'transformers',
+        'circuitsvis',
+        'nltk',
+        'plotly'
     ]
 )

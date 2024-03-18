@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, random_split
 from transformers import TrainingArguments, Trainer
 import numpy as np
 import evaluate
-from preproc import get_random_nouns_ds
+from finetuning.preproc import get_random_nouns_ds
 import inspect
 from torch.utils.data import Subset
 from transformers import DataCollatorForLanguageModeling
@@ -28,7 +28,24 @@ def split_dataset(ds, train_perc=.5, eval_perc=.3, batch_size=64):
     train_dataset, test_dataset, val_dataset = random_split(ds, [train_size, test_size, val_size])
     return train_dataset, test_dataset, val_dataset
 
-
+def evaluate(model, dataset):
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    training_args = TrainingArguments(output_dir="training", evaluation_strategy="epoch", learning_rate=5e-5, 
+        label_names=["labels"], num_train_epochs=3)
+    data_collator = CustomDataCollatorForLanguageModeling(
+        tokenizer=tokenizer,
+        mlm=False,  # gpt2 is causal
+    )
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=None,
+        eval_dataset=None,
+        data_collator=data_collator,
+        tokenizer=tokenizer
+    )
+    eval_result = trainer.evaluate(eval_dataset=dataset)
+    return eval_result
 
 def huggingface_finetune(prompts_ds, experiment_name, train_perc=.5, eval_perc=.3, batch_size=64, epochs=3):
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')

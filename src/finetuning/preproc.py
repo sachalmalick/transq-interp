@@ -8,11 +8,11 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from transqshared.util import pickle_obj, load_pickled_data
 import torch
 
-ALL_NOUNS_FILE = "data/all_nouns.pkl"
-RANDOM_NOUN_PROMPTS = "data/random_noun_prompts.pkl"
-RANDOM_NOUN_TOKENS = "data/random_noun_tokens.pkl"
-RANDOM_NOUN_TOKENS_EXPOSED = "data/random_noun_tokens.pkl"
-tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-cased")
+ALL_NOUNS_FILE = "output/data/all_nouns.pkl"
+SINGLE_TOKEN_NOUNS = "output/data/single_token_nouns.pkl"
+RANDOM_NOUN_PROMPTS = "output/data/random_noun_prompts.pkl"
+RANDOM_NOUN_TOKENS = "output/data/random_noun_tokens.pkl"
+RANDOM_NOUN_TOKENS_EXPOSED = "output/data/random_noun_tokens_exposed.pkl"
 
 #lets aim for 20,000 examples.
 
@@ -98,7 +98,6 @@ def create_tokens_and_labels(tokenizer, prompt, c, max_length, pad_val):
     return {"input_ids" : combined_tokens, "attention_mask": combined_attention, "labels" : labels}
 
 
-
 def generate_and_save_prompts(nounset, tokenizer):
     prompts = []
     total_possible_prompts = len(nounset["a"])
@@ -114,6 +113,65 @@ def generate_and_save_prompts(nounset, tokenizer):
     print("generated {} unique prompts".format(len(prompts)))
     pickle_obj(RANDOM_NOUN_PROMPTS, prompts)
     print("Saved prompts to ", RANDOM_NOUN_PROMPTS)
+
+def get_only_single_token_nouns():
+    print("loading all nouns")
+    nounset = load_pickled_data(ALL_NOUNS_FILE)
+    all_unique_nouns = []
+    all_unique_nouns.extend(nounset["a"])
+    all_unique_nouns.extend(nounset["b"])
+    all_unique_nouns.extend(nounset["c"])
+    all_single_token_nouns = []
+    print("processing")
+    for noun in all_unique_nouns:
+        all_single_token_nouns.extend(noun.split("_"))
+    all_single_token_nouns = list(set(all_single_token_nouns))
+    print("found {} unique single token nouns".format(len(all_single_token_nouns)))
+    print("saving file", SINGLE_TOKEN_NOUNS)
+    pickle_obj(SINGLE_TOKEN_NOUNS, all_single_token_nouns)
+    
+
+def construct_evaluation_set_single_token_c(fn, max_prompts=1000):
+    print("Loading nounset")
+    nounset = load_pickled_data(SINGLE_TOKEN_NOUNS)
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    prompts = []
+
+    print(len(nounset), "unique single token nouns")
+
+    one_third = len(nounset) // 3
+    a_set = nounset[:one_third]
+    b_set = nounset[one_third:one_third*2]
+    c_set = nounset[one_third*2:]
+
+    random.shuffle(a_set)
+    random.shuffle(b_set)
+    random.shuffle(c_set)
+
+    for i in range(0, min(len(a_set), max_prompts*len(PROMPT_TEMPLATES))):
+        for prompt_template in PROMPT_TEMPLATES:
+            a = " " + a_set[i]
+            b = " " + b_set[i]
+            c = " " + c_set[i]
+            prompt = prompt_template.format(a=a, b=b, c=c)
+            
+            a_tokens = tokenizer(a)["input_ids"]
+            b_tokens = tokenizer(b)["input_ids"]
+            c_tokens = tokenizer(c)["input_ids"]
+
+            def valid_tokens():
+                valid_len = len(a_tokens) == 1 and len(b_tokens) == 1 and len(c_tokens) == 1
+                unique = a_tokens[0] != b_tokens[0] and a_tokens[0] != c_tokens[0] and b_tokens[0] != c_tokens[0]
+                return valid_len and unique
+            
+            if(valid_tokens()):
+                prompt_tokens = tokenizer(prompt)["input_ids"]
+                prompts.append({"prompt" : prompt, "a" : a, "b" : b, "c" : c, "prompt_tokens" : prompt_tokens, "c_tokens" : c_tokens, "b_tokens" : b_tokens, "a_tokens" : a_tokens})
+    print("generated {} unique prompts".format(len(prompts)))
+    random.shuffle(prompts)
+    prompts = prompts[:max_prompts]
+    pickle_obj(fn, prompts)
+    print("Saved prompts to ", fn)
 
 def generate_and_save_prompt_tokens(expose_c=False):
     prompts = load_pickled_data(RANDOM_NOUN_PROMPTS)
@@ -137,7 +195,7 @@ def generate_and_save_prompt_tokens(expose_c=False):
         pickle_obj(RANDOM_NOUN_TOKENS, all_tokens)
         print("Saved prompts to ", RANDOM_NOUN_TOKENS)
 
-def get_random_nouns_ds(expose_c=True):
+def get_random_nouns_ds(expose_c=False):
     print("loading tokens")
     fn = RANDOM_NOUN_TOKENS
     if(expose_c):
@@ -146,37 +204,29 @@ def get_random_nouns_ds(expose_c=True):
     print("done loading tokens")
     return RandomNounPrompts(tokens)
 
-def tokenize_dataset(examples):
-    return tokenizer(examples["text"])
-
-
-if __name__ == "__main__":
+def main():
     #setup()
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    tokenizer.pad_token = tokenizer.eos_token
-
-    # nounset = load_pickled_data(ALL_NOUNS_FILE)
-    # generate_and_save_prompts(nounset, tokenizer)
-    #generate_and_save_prompt_tokens(expose_c=True)
+    generate_and_save_prompt_tokens()
     
-    prompt_ds = get_random_nouns_ds(expose_c=True)
-    print(len(prompt_ds))
-    print(prompt_ds[23])
+    # prompt_ds = get_random_nouns_ds(expose_c=True)
+    # print(len(prompt_ds))
+    # print(prompt_ds[23])
 
-    max_length = len(prompt_ds[23]["input_ids"])
-    prompts = load_pickled_data(RANDOM_NOUN_PROMPTS)
+    # max_length = len(prompt_ds[23]["input_ids"])
+    # prompts = load_pickled_data(RANDOM_NOUN_PROMPTS)
 
-    print("original tokens length", len(prompt_ds[23]["input_ids"]))
+    # print("original tokens length", len(prompt_ds[23]["input_ids"]))
 
-    pad_val = 50256
-    prompt = prompts[23]["prompt"] + " "
-    c = prompts[23]["c"]
-    t_and_l = create_tokens_and_labels(tokenizer, prompt, c, max_length, pad_val)
-    print(prompt_ds[23])
+    # pad_val = 50256
+    # prompt = prompts[23]["prompt"] + " "
+    # c = prompts[23]["c"]
+    # t_and_l = create_tokens_and_labels(tokenizer, prompt, c, max_length, pad_val)
+    # print(prompt_ds[23])
 
-    model = GPT2LMHeadModel.from_pretrained('gpt2')
-    result = model(prompt_ds[23]["input_ids"], labels=prompt_ds[23]["labels"])
-    print(result[0])
+    # model = GPT2LMHeadModel.from_pretrained('gpt2')
+    # result = model(prompt_ds[23]["input_ids"], labels=prompt_ds[23]["labels"])
+    # print(result[0])
 
 
     # print("original tokens length", len(prompt_ds[23]["input_ids"]))

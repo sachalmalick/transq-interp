@@ -25,6 +25,12 @@ def prompt(text, model):
     outputs = model.generate(inputs)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
+def prompt_for_tokens(text, model):
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    inputs = tokenizer.encode(text, return_tensors="pt")
+    outputs = model.generate(inputs)
+    return outputs
+
 def get_model_path(model):
     return Path(const.TUNED_MODELS_DIR) / Path(model["local_name"])
 
@@ -42,3 +48,11 @@ def get_ft_model(model):
 def create_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+def save_file(data, dir, name):
+    create_dir(dir)
+    path = os.path.join(dir, name)
+    pickle_obj(path, data)
+
+def list_files(directory):
+    return [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
